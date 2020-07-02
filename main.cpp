@@ -22,6 +22,7 @@
 #include <QPushButton>
 #include <QSpinBox>
 #include <QTextStream>
+#include <QDebug>
 
 typedef float CoordType;
 typedef CDT::Triangulation<CoordType> Triangulation;
@@ -236,9 +237,24 @@ protected:
     }
     
     void wheelEvent(QWheelEvent *event) override {
-        int steps = event->delta() / 120;
-        auto scale = m_scale + steps * 0.2;
-        scale = steps>0 ? std::min(scale, 7.0) : std::max(scale, -7.0);
+        auto scale = m_scale;
+        QPoint numPixels = event->angleDelta();
+        QPoint numDegrees = event->angleDelta();
+        if (!numPixels.isNull()) {
+            scale += numPixels.y() * 0.01;
+        } else if (!numDegrees.isNull()) {
+            int steps = 0;
+            steps = numPixels.y() / 120.0;
+        } else {
+            return;
+        }
+        
+        if (scale < -7.0) {
+            scale = - 7.0;
+        } else if (scale > 7.0) {
+            scale = 7.0;
+        }
+        
         if (m_scale == scale) {
             return;
         }
@@ -399,6 +415,16 @@ private:
             QPointF pt1(v.pos.x, v.pos.y);
             p.drawPoint(pt1);
         }
+        
+        pen.setColor(QColor(225, 0, 0));
+        pen.setWidth(2.0);
+        p.setPen(pen);
+        for (auto const edge : m_cdt.fixedEdges) {
+            auto const &p1 = m_cdt.vertices[edge.v1()];
+            auto const &p2 = m_cdt.vertices[edge.v2()];
+            p.drawLine(QPointF(p1.pos.x, p1.pos.y), QPointF(p2.pos.x, p2.pos.y));
+        }
+        
     }
 
 private:
